@@ -13,3 +13,4 @@ rather than linear.
 The importance of compound interest lies in the fact that it allows for significant capital growth over the long term, as long as a constant interest rate is maintained. It can be calculated using the formula: C = P * (1 + r)^t, where C is the total capital after t periods, P is the initial capital, r is the interest rate and t is the number of periods.
 
 ## Live Demo
+https://monterourena.github.io/coderhouse-javascript-project/
