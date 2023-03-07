@@ -1,7 +1,4 @@
-// Declaración de variables
-let exit, period, base, anual_add, years, interest, total;
-let records = new Array();
-
+// Objects
 class Record {
   constructor(period, base, anual_add, years, interest, total) {
     this.period = period;
@@ -13,39 +10,160 @@ class Record {
   }
 }
 
-// Funciones para la solicitud de datos
-function Period() {
-  period = prompt(
-    "Seleccione:\n 1. Agregar al inicio del periodo \n 2. Agregar al final del periodo"
-  );
-}
-function Base() {
-  base = parseFloat(prompt("Ingrese el monto de capital inicial (USD)"));
-}
-function Anual() {
-  anual_add = parseFloat(
-    prompt("Ingrese el monto anual a agregar a la inversión (USD)")
-  );
-}
-function Years() {
-  years = parseFloat(prompt("Ingrese el plazo de la inversión (Años)"));
-}
-function Interest() {
-  interest = parseFloat(prompt("Ingrese el porcentaje de interés anual (%)"));
+// Global variables
+let currentRecord, savedRecords;
+
+// General Functions
+function NewToast(Message){
+  Toastify({
+    text: Message,
+    duration: 1500,
+    close: false,
+    gravity: "bottom", // `top` or `bottom`
+    position: "right", // `left`, `center` or `right`
+    stopOnFocus: true, // Prevents dismissing of toast on hover
+    style: {
+      background: "linear-gradient(96.53deg, #6166DE 20.58%, #5CAFCE 96.44%)",
+    }
+  }).showToast();
 }
 
-//Función para el cálculo del interés compuesto
+// LISTENERS AND DOM ELEMENTS
+
+// --> General Elements
+const savedRecordsContainer = document.querySelector("#RecordsContainer");
+
+const CalculateForm = document.querySelector("#CalculateButton");
+CalculateButton.addEventListener("click", Total);
+
+const SaveButton = document.querySelector("#SaveRecordButton");
+SaveButton.addEventListener("click", SaveRecord);
+
+const result = document.getElementById("InvestmentResultOutput");
+
+// --> Slider
+const SliderButtonA = document.querySelector("#SliderButton__Beginning");
+const SliderButtonB = document.querySelector("#SliderButton__End");
+
+SliderButtonA.addEventListener("click", function () {
+  SliderButtonA.classList.add("Active");
+  SliderButtonB.classList.remove("Active");
+  Total();
+});
+
+SliderButtonB.addEventListener("click", function () {
+  SliderButtonB.classList.add("Active");
+  SliderButtonA.classList.remove("Active");
+  Total();
+});
+
+// --> Filters
+const SetFilterButton = document.querySelector("#SetFilterButton")
+SetFilterButton.addEventListener("click", FilteringRecords)
+
+const ClearFilterButton = document.querySelector("#ClearFilterButton")
+ClearFilterButton.addEventListener("click", function(){
+  LoadRecords(savedRecords)
+  NewToast("Filters cleared")
+})
+
+// SESSION AND LOCAL STORAGE
+const ClearRecordsButton = document.querySelector("#ClearRecordsButton")
+ClearRecordsButton.addEventListener("click", ClearStorage)
+
+if (localStorage.getItem("savedRecords") === null) {
+  savedRecords = new Array();
+} else {
+  savedRecords = JSON.parse(localStorage.getItem("savedRecords"));
+  console.log("Session restored");
+  LoadRecords(savedRecords);
+  NewToast("Session restored")
+}
+
+function ClearStorage(){
+  savedRecords = []
+  localStorage.setItem("savedRecords", JSON.stringify(savedRecords));
+  LoadRecords(savedRecords)
+  NewToast("Records cleared")
+}
+
+
+// DOM MANIPULATION FUNCTIONS
+// Get input values
+
+function getPeriod() {
+  const SliderButtonA = document.querySelector("#SliderButton__Beginning");
+  return SliderButtonA.classList.contains("Active");
+}
+
+function getValue(id) {
+  return parseFloat(document.getElementById(id).value);
+}
+
+// Records manipulation
+
+function RemoveAllChildNodes(parent) {
+  while (parent.firstChild) {
+    parent.removeChild(parent.firstChild);
+  }
+}
+
+function LoadRecords(records) {
+
+  console.log("Loading these records:", records)
+  //Agregar aquí que se haga display de un card bien bonito si no hay resultados
+  RemoveAllChildNodes(savedRecordsContainer);
+  for (const record of records) {
+    const element = document.createElement("div");
+    element.classList.add("Record__Card");
+    element.innerHTML = `<p class="Record__Amount">${
+      "$ " + record.total.toFixed(2)
+    }</p>
+    <div class="Record__Information_Grid">
+      <div class="Record__Details">
+        <p class="DetailValue" id="DetailValue1">${
+          "$ " + record.base.toFixed(1)
+        }</p>
+        <p class="DetailDescription" id="DetailDescription1">Initial Investment</p>
+      </div>
+      <div class="Record__Details">
+        <p class="DetailValue" id="DetailValue2">${
+          record.interest.toFixed(1) + " %"
+        }</p>
+        <p class="DetailDescription" id="DetailDescription2">Annual interest rate</p>
+      </div>
+      <div class="Record__Details">
+        <p class="DetailValue" id="DetailValue3">${
+          "$ " + record.anual_add.toFixed(1)
+        }</p>
+        <p class="DetailDescription" id="DetailDescription3">Annual increment</p>
+      </div>
+      <div class="Record__Details">
+        <p class="DetailValue" id="DetailValue4">${
+          record.years.toFixed(0) + " years"
+        }</p>
+        <p class="DetailDescription" id="DetailDescription4">Investment term</p>
+      </div>
+    </div>`;
+    savedRecordsContainer.append(element);
+  }
+}
+
+// MAIN CALCULATIONS
+
 function Total() {
-  Period();
-  if (period === "1" || period === "2") {
-    Base();
-    Anual();
-    Years();
-    Interest();
+  let period = getPeriod();
+  let base = getValue("InitialInvestmentInput");
+  let anual_add = getValue("AnnualIncrementInput");
+  let interest = getValue("RateInput");
+  let years = getValue("YearInput");
 
-    const record = new Record(period, base, anual_add, years, interest, base);
-
-    if (record.period === "1") {
+  const record = new Record(period, base, anual_add, years, interest, base);
+  if (isNaN(years)) {
+    //If there if no years entered, we do not compute the calculation
+    record.total = NaN;
+  } else {
+    if (record.period === true) {
       for (let i = 0; i < record.years; i++) {
         record.total =
           (record.total + record.anual_add) * (1 + record.interest / 100);
@@ -56,54 +174,44 @@ function Total() {
           record.total * (1 + record.interest / 100) + record.anual_add;
       }
     }
+  }
 
-    alert(
-      `El monto final de tu inversión es de ${record.total.toFixed(2)} USD`
-    );
-    records.push(record);
+  //Inputs validation
+
+  if (isNaN(record.total)) {
+    result.textContent = "Missing inputs";
+    console.log("Missing inputs");
   } else {
-    alert("La opción seleccionada no es correcta, intente de nuevo");
+    result.textContent = "$ "+record.total.toFixed(2);
+    currentRecord = record;
   }
 }
 
 //Función para listar cálculos
-function Listar(filter) {
-  let tempRecords = records;
-  let listOfRecords = "";
+function FilteringRecords() {
+  let tempRecords = savedRecords;
 
-  if(filter){
-    listOfRecords = "Filtrado de elementos \n" ;
-    filterValue = parseFloat(prompt("Ingrese el número mínimo de años de inversión"));
-    tempRecords = records.filter(function(record){return record.years >= filterValue})
-  }
-  
-  tempRecords.forEach(function (record, index) {
-    listOfRecords =
-      listOfRecords +
-      `---- Registro ${index + 1} ----\n
-      Años de inversión: ${record.years}\n
-      Interes: ${record.interest}\n
-      Total: ${record.total.toFixed(2)}\n`;
+  filterValue = getValue("FilterInput")
+  tempRecords = tempRecords.filter(function (record) {
+    return record.years >= filterValue;
   });
 
-  if(listOfRecords === "" || listOfRecords === "Filtrado de elementos \n"){listOfRecords="No hay registros para mostrar"}
-  alert(listOfRecords);
+  LoadRecords(tempRecords);
+  NewToast("Filter applied")
 }
 
-while (true) {
-  exit = prompt(
-    "Seleccione una opción: \n 1. Calcular Interés \n 2. Listar registros \n 3. Filtrar registros por años\n 4. Salir"
-  );
-  if (exit === "1") {
-    Total();
-  } else if (exit === "2") {
-    Listar(false);
-  } else if (exit === "3") {
-    Listar(true);
-  } else if (exit === "4") {
-    alert("Gracias por utilizar nuestro simulador");
-    break;
-  } else {
-    alert("La opción seleccionada es incorrecta. Intente de nuevo.");
+//AGREGAR FUNCION QUE ME QUITE LOS FILTROS
+
+function SaveRecord() {
+  let lastRecord = currentRecord;
+  if (lastRecord == undefined) {
+    NewToast("Invalid record")
+    console.log("Invalid calculation");
+  } else if (!isNaN(lastRecord.total)) {
+    savedRecords.push(lastRecord);
+    console.log("Record saved");
+    localStorage.setItem("savedRecords", JSON.stringify(savedRecords));
+    LoadRecords(savedRecords);
+    NewToast("Record saved")
   }
 }
